@@ -10,10 +10,18 @@ using namespace std;
 #include <chrono>
 #include <memory>
 #include <mutex>
+
+enum class Status{
+    starvation,
+    is_thinking,
+    is_eating,
+    is_waiting,
+    undefined
+};
 struct Order{
-    bool starvation;
+    string name;
+    Status status;
     chrono::seconds famine_sec;
-    std::chrono::duration<double> time_of_live;
 }typedef Order;
 
 class Philosopher {
@@ -21,17 +29,15 @@ public:
     Philosopher(const string& input_name, size_t fork);
     [[noreturn]] void livingProcess();
     [[nodiscard]] shared_ptr<Order> getOrder()const;
+protected:
+    void eatingProcess();
+    void thinkingProcess();
 private:
-    bool _starvation;
-    bool _left;
-    bool _right;
-    chrono::seconds _famine_sec;
-    chrono::time_point<std::chrono::system_clock>
-    _time_of_birth;
+    Status _status;
+    chrono::seconds _famineSec;
     string _name;
-    size_t _right_fork;
-    size_t _left_fork;
-
+    pair<size_t, bool>_rightFork;
+    pair<size_t, bool>_leftFork;
 };
 
 

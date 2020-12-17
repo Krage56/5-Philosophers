@@ -1,124 +1,69 @@
 #include <memory>
 #include <vector>
 #include <thread>
+#include <iomanip>
+#include <iostream>
+#include <cstring>
 #include "Philosopher.h"
 using namespace std;
 
-//mutex forks[5];
-//
-//mutex cout_mutex;
-/*void print_msg(const string& msg)
-{
-    cout_mutex.lock();
-    cout << msg << flush;
-    cout_mutex.unlock();
-}*/
 
+[[noreturn]]void printOrder(vector<Philosopher>& philosophers){
+    const int frequency = 2;
+    while(true) {
+        cout << setfill('_') << setw(66);
+        cout << "" << endl << flush;
+        cout << setfill(' ');
+        cout << "|" << setw(9) << "Name" << setw(6) << " |" << flush;
+        cout << "  " << setw(9) << "Status" << setw(6) << "|" << flush;
+        cout << "  " << "Duration of fasting (in sec)"
+             << setw(3) << "|" << endl << flush;
+        cout << setfill('_') << setw(67);
+        cout << "\n" << flush;
 
-/*[[noreturn]] void Phil(size_t idx, const string& id)
-{
-    mutex& left_fork  = forks[ idx==0 ? 4 : idx-1 ];
-    mutex& right_fork = forks[ idx ];
-
-    while(true)
-    {
-        {
-            ostringstream ostr;
-            ostr << id << " is thinking about" << endl;
-            print_msg(ostr.str());
-        }
-        // Thinking about...
-        this_thread::sleep_for(chrono::seconds(rand()%5));
-
-        // Got hungry
-        {
-            ostringstream ostr;
-            ostr << id << " got hungry" << endl;
-            print_msg(ostr.str());
-        }
-
-        // wait for left fork
-        //while(!left_fork.try_lock()) this_thread::yield();
-        left_fork.lock();
-
-        {
-            ostringstream ostr;
-            ostr << id << " got left fork! " << endl;
-            print_msg(ostr.str());
-        }
-
-        // wait for left fork
-        //while(!right_fork.try_lock()) this_thread::yield();
-        right_fork.lock();
-        {
-            ostringstream ostr;
-            ostr << id << " got right fork! " << endl;
-            print_msg(ostr.str());
-        }
-
-        // at last! can eat
-        {
-            ostringstream ostr;
-            ostr << id << " can eat!" << endl;
-            print_msg(ostr.str());
-        }
-        this_thread::sleep_for(chrono::seconds(1));
-
-        right_fork.unlock();
-        left_fork.unlock();
-
-        {
-            ostringstream ostr;
-            ostr << id << " put forks on the table" << endl;
-            print_msg(ostr.str());
+        for (const auto &p: philosophers) {
+            shared_ptr<Order> tmp = p.getOrder();
+            cout << "|" << setfill(' ') <<
+            tmp->name << setw(15-tmp->name.length()) << "|";
+            int correction = 0;
+            switch(tmp->status){
+                case Status::starvation:{
+                    cout << "Is starving";
+                    correction = strlen("Is starving");
+                    break;
+                }
+                case Status::is_thinking:{
+                    cout << "Is thinking";
+                    correction = strlen("Is thinking");
+                    break;
+                }
+                case Status::is_eating:{
+                    cout << "Is eating";
+                    correction = strlen("Is eating");
+                    break;
+                }
+                case Status::is_waiting:{
+                    cout << "Is waiting";
+                    correction = strlen("Is waiting");
+                    break;
+                }
+                case Status::undefined:{
+                    cout << "Isn't living";
+                    correction = strlen("Isn't living");
+                    break;
+                }
+            }
+            cout << setw(17-correction) << "|" << flush;
+            cout <<""<< setw((34)/2)
+            <<  tmp->famine_sec.count() << setw((34)/2) << "|\n" << flush;
         }
 
+        this_thread::sleep_for(chrono::seconds(frequency));
     }
 }
-*/
 
-/*[[noreturn]]void doorman(const string& name){
-    while (true){
-        srand(time(0));
-        {
-            ostringstream ostr;
-            ostr << "Hello, " << name << endl;
-            print_msg(ostr.str());
-            this_thread::sleep_for(chrono::seconds(rand()%15));
-        }
-        {
-            ostringstream ostr;
-            ostr << "Goodbye, " << name << endl;
-            print_msg(ostr.str());
-            this_thread::sleep_for(chrono::seconds(rand()%15));
-        }
-    }
-}*/
 
-int main()
-{
-//    srand(time(0));
-//    vector<thread> philosophers;
-//    philosophers.push_back(thread(Phil,0,"Socrat"));
-//    philosophers.push_back(thread(Phil,1,"Platon"));
-//    philosophers.push_back(thread(Phil,2,"Decart"));
-//    philosophers.push_back(thread(Phil,3,"Popper"));
-//    philosophers.push_back(thread(Phil,4,"Aristotel"));
-//
-//    for(auto &t : philosophers) t.join();
-/*    vector<thread> guests;
-    guests.emplace_back(thread(doorman, "Alise"));
-    guests.emplace_back(thread(doorman, "Patrink"));
-    guests.emplace_back(thread(doorman, "Jane"));
-    guests.emplace_back(thread(doorman, "John"));
-    guests.emplace_back(thread(doorman, "Rose"));
-    for(auto &t : guests) t.join();*/
-//    vector<thread> philosophers;
-//    philosophers.push_back(thread(Phil,0,"Socrat"));
-//    philosophers.push_back(thread(Phil,1,"Platon"));
-//    philosophers.push_back(thread(Phil,2,"Decart"));
-//    philosophers.push_back(thread(Phil,3,"Popper"));
-//    philosophers.push_back(thread(Phil,4,"Aristotel"));
+int main(){
     vector<Philosopher> philosophers;
     vector<thread> threads;
     philosophers.emplace_back(Philosopher("Socrat", 0));
@@ -128,11 +73,12 @@ int main()
     philosophers.emplace_back(Philosopher("Fridman", 4));
     for(auto& philosopher: philosophers){
         threads.emplace_back(thread([&philosopher](){philosopher.livingProcess();}));
-//        philosopher.livingProcess();
     }
+    thread print_thread(printOrder, ref(philosophers));
     for(auto& t: threads){
         t.join();
     }
+    print_thread.join();
     return 0;
 }
 

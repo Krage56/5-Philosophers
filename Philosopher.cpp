@@ -7,83 +7,77 @@
 #include <sstream>
 #include <thread>
 #include <ctime>
-mutex cout_mutex;
-static mutex forks[5];
-void print_msg(const string& msg)
-{
-    cout_mutex.lock();
-    cout << msg << flush;
-    cout_mutex.unlock();
-}
+
+mutex forks[5];
 Philosopher::Philosopher(const string &input_name, size_t fork) {
     _name = input_name;
-    _right_fork = fork;
-    _left_fork = (fork + 4) % 5;
-    _time_of_birth = chrono::system_clock::now();
-    _famine_sec = 0s;
-    _starvation = false;
-    _left = false;
-    _right = false;
+    _rightFork.first = fork;
+    _leftFork.first = (fork + 4) % 5;
+    _famineSec = 0s;
+    _status = Status::undefined;
+    _rightFork.second = false;
+    _leftFork.second = false;
 }
 
 shared_ptr<Order> Philosopher::getOrder() const {
     shared_ptr<Order> order(new Order);
-    order->famine_sec = _famine_sec;
-    order->time_of_live = chrono::system_clock::now() - _time_of_birth;
+    order->famine_sec = _famineSec;
+    order->status = _status;
+    order->name = _name;
     return order;
 }
 
 void Philosopher::livingProcess() {
-    srand(time(NULL));
     while(true){
-        if(!_starvation){
-            const int thinking = 8;
-            ostringstream ostr;
-            ostr << _name << " is thinking about..." << endl;
-            print_msg(ostr.str());
-            _famine_sec += chrono::seconds(thinking);
-            this_thread::sleep_for(chrono::seconds(thinking));
-        }
-        {
-            int waiting = rand() % 5;
-            _left = _left ? _left : forks[_left_fork].try_lock();
-            _right = _right ? _right : forks[_right_fork].try_lock();
-            if (_left && _right) {
-                _starvation = false;
-                _famine_sec = 0s;
-                ostringstream ostr;
-                ostr << _name << " is eating now!" << endl;
-                print_msg(ostr.str());
-            }
-            else {
-                ostringstream ostr;
-                ostr << _name << " can't eating now!" << endl;
-                print_msg(ostr.str());
-                if (_famine_sec > 12s) {
-                    _starvation = true;
-                }
-                _famine_sec += chrono::seconds(waiting);
-            }
-            if (!_starvation) {
-                if (_left) {
-                    _left = false;
-                    forks[_left_fork].unlock();
-                }
-                if (_right) {
-                    _right = false;
-                    forks[_right_fork].unlock();
-                }
-            }
-            if (_starvation) {
-                ostringstream ostr;
-                ostr << _name << " is starving" << endl;
-            }
-            if(_starvation && _famine_sec > 30s){
-                ostringstream ostr;
-                ostr << _name << " has died" << endl;
-                break;
-            }
-            this_thread::sleep_for(chrono::seconds(waiting));
-        }
+        thinkingProcess();
+        eatingProcess();
     }
+}
+
+void Philosopher::thinkingProcess() {
+    const int thinking = 8;
+    _status = Status::is_thinking;
+    _famineSec += chrono::seconds(thinking);
+    this_thread::sleep_for(chrono::seconds(thinking));
+}
+
+void Philosopher::eatingProcess() {
+    srand(time(nullptr));
+    const int aggression_limit = 15;
+    _status = Status::is_waiting;
+    while(!_leftFork.second || !_rightFork.second){
+        if(_famineSec > chrono::seconds(aggression_limit)){
+            _status = Status::starvation;
+        }
+        int waiting = rand() % 5;
+        _leftFork.second = _leftFork.second ? _leftFork.second :
+                           forks[_leftFork.first].try_lock();
+        _rightFork.second = _rightFork.second ? _rightFork.second :
+                            forks[_rightFork.first].try_lock();
+        if (_leftFork.second && _rightFork.second) {
+            _status = Status::is_eating;
+            _famineSec = 0s;
+            ostringstream ostr;
+            waiting = 4;
+        }
+        else{
+            _famineSec += chrono::seconds(waiting);
+        }
+        if((_status != Status::starvation) &&
+        (_leftFork.second ^ _rightFork.second)){
+            if(_leftFork.second){
+                _leftFork.second = false;
+                forks[_leftFork.first].unlock();
+            }
+            if(_rightFork.second){
+                _rightFork.second = false;
+                forks[_rightFork.first].unlock();
+            }
+        }
+        this_thread::sleep_for(chrono::seconds(waiting));
+    }
+    _leftFork.second = false;
+    forks[_leftFork.first].unlock();
+    _rightFork.second = false;
+    forks[_rightFork.first].unlock();
 }
