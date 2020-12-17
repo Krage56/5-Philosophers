@@ -1,12 +1,7 @@
-#include <iostream>
-#include <thread>
-#include <mutex>
-#include <ctime>
-#include <cstdlib>
-#include <string>
-#include <sstream>
+#include <memory>
 #include <vector>
-
+#include <thread>
+#include "Philosopher.h"
 using namespace std;
 
 //mutex forks[5];
@@ -118,7 +113,26 @@ int main()
     guests.emplace_back(thread(doorman, "John"));
     guests.emplace_back(thread(doorman, "Rose"));
     for(auto &t : guests) t.join();*/
-
+//    vector<thread> philosophers;
+//    philosophers.push_back(thread(Phil,0,"Socrat"));
+//    philosophers.push_back(thread(Phil,1,"Platon"));
+//    philosophers.push_back(thread(Phil,2,"Decart"));
+//    philosophers.push_back(thread(Phil,3,"Popper"));
+//    philosophers.push_back(thread(Phil,4,"Aristotel"));
+    vector<Philosopher> philosophers;
+    vector<thread> threads;
+    philosophers.emplace_back(Philosopher("Socrat", 0));
+    philosophers.emplace_back(Philosopher("Platon", 1));
+    philosophers.emplace_back(Philosopher("Decart", 2));
+    philosophers.emplace_back(Philosopher("Aristotel", 3));
+    philosophers.emplace_back(Philosopher("Fridman", 4));
+    for(auto& philosopher: philosophers){
+        threads.emplace_back(thread([&philosopher](){philosopher.livingProcess();}));
+//        philosopher.livingProcess();
+    }
+    for(auto& t: threads){
+        t.join();
+    }
     return 0;
 }
 
