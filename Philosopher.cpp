@@ -35,7 +35,7 @@ void Philosopher::livingProcess() {
 }
 
 void Philosopher::thinkingProcess() {
-    const int thinking = 8;
+    const int thinking = 4;
     _status = Status::is_thinking;
     _famineSec += chrono::seconds(thinking);
     this_thread::sleep_for(chrono::seconds(thinking));
@@ -49,7 +49,7 @@ void Philosopher::eatingProcess() {
         if(_famineSec > chrono::seconds(aggression_limit)){
             _status = Status::starvation;
         }
-        int waiting = rand() % 5;
+        int waiting = (rand()*_name.length())% 5;
         _leftFork.second = _leftFork.second ? _leftFork.second :
                            forks[_leftFork.first].try_lock();
         _rightFork.second = _rightFork.second ? _rightFork.second :

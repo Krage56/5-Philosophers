@@ -9,7 +9,7 @@ using namespace std;
 
 
 [[noreturn]]void printOrder(vector<Philosopher>& philosophers){
-    const int frequency = 2;
+    const int frequency = 4;
     while(true) {
         cout << setfill('_') << setw(66);
         cout << "" << endl << flush;
